@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Croissant Cannon</title>
+<style>
+  :root {
+    --crust: #C97A3D;
+    --crust-dark: #8A4E22;
+    --butter: #FFF1D6;
+    --flour: #FAF6EE;
+    --steam: #E8CBA0;
+    --ink: #4A2E14;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--flour);
+    background-image:
+      radial-gradient(circle at 15% 20%, var(--steam) 0, transparent 35%),
+      radial-gradient(circle at 85% 80%, var(--steam) 0, transparent 35%);
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    color: var(--ink);
+  }
+
+  .card {
+    background: var(--butter);
+    border: 3px solid var(--crust);
+    border-radius: 24px;
+    padding: 48px 40px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 12px 0 -6px var(--crust-dark);
+  }
+
+  .croissant {
+    font-size: 72px;
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+
+  h1 {
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    margin: 12px 0 4px;
+    color: var(--crust-dark);
+  }
+
+  p.sub {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    opacity: 0.7;
+    margin: 0 0 28px;
+  }
+
+  button {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    background: var(--crust);
+    color: var(--flour);
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--crust-dark);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+
+  button:hover .croissant-inline { transform: rotate(-8deg); }
+
+  button:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--crust-dark);
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+    box-shadow: 0 4px 0 var(--crust-dark);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--crust-dark);
+    border: 2px solid var(--crust);
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+    box-shadow: none;
+  }
+
+  .tab:active { transform: none; box-shadow: none; }
+
+  .tab.active {
+    background: var(--crust);
+    color: var(--flour);
+  }
+
+  #status {
+    margin-top: 18px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+    min-height: 18px;
+  }
+
+  #status.ok { color: #2E7D32; }
+  #status.err { color: #C0392B; }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="croissant">🥐</div>
+    <h1>Croissant Cannon</h1>
+    <p class="sub">Ein Klick, ein Croissant, ein Kanal.</p>
+
+    <div class="tabs">
+      <button type="button" id="tabDiscord" class="tab active" onclick="setPlatform('discord')">Discord</button>
+      <button type="button" id="tabTeams" class="tab" onclick="setPlatform('teams')">Teams</button>
+    </div>
+
+    <button id="sendBtn" onclick="sendCroissant()">🥐 Croissant senden</button>
+    <div id="status"></div>
+  </div>
+
+<script>
+  // ⚠️ Hier deine eigenen Webhook-URLs eintragen.
+  //
+  // Discord: Server -> Kanaleinstellungen -> Integrationen -> Webhooks -> Neuer Webhook -> URL kopieren
+  //
+  // Teams: Die alten "Office 365 Connector"-Webhooks sind seit Mai 2026 abgeschaltet.
+  // Neuer Weg: Im Zielkanal -> "..." -> Workflows -> Vorlage
+  // "Nachricht posten, wenn ein Webhook-Request empfangen wird" -> Workflow erstellen -> URL kopieren.
+  const WEBHOOK_URLS = {
+    discord: "https://discord.com/api/webhooks/1539894778328653904/zYArw9h9sgYCMqYnFZl2by3y01ap0zCMsexLRPMyGqZMY8AuTQpT_qNKFTieBxiUluI2",
+    teams:   "HIER_DEINE_TEAMS_WORKFLOW_WEBHOOK_URL_EINFUEGEN"
+  };
+
+  let platform = "discord";
+
+  function setPlatform(p) {
+    platform = p;
+    document.getElementById("tabDiscord").classList.toggle("active", p === "discord");
+    document.getElementById("tabTeams").classList.toggle("active", p === "teams");
+    document.getElementById("status").textContent = "";
+    document.getElementById("status").className = "";
+  }
+
+  function buildPayload(p) {
+    if (p === "discord") {
+      return { content: "🥐" };
+    }
+    // Teams Workflows-Webhook: Message Card Format
+    return {
+      "@type": "MessageCard",
+      "@context": "http://schema.org/extensions",
+      summary: "Croissant",
+      text: "🥐"
+    };
+  }
+
+  async function sendCroissant() {
+    const btn = document.getElementById("sendBtn");
+    const status = document.getElementById("status");
+    const url = WEBHOOK_URLS[platform];
+
+    if (!url || url.includes("HIER_DEINE")) {
+      status.textContent = "Bitte zuerst die Webhook-URL für " + platform + " im Code eintragen.";
+      status.className = "err";
+      return;
+    }
+
+    btn.disabled = true;
+    status.textContent = "";
+    status.className = "";
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildPayload(platform))
+      });
+
+      if (res.ok || res.status === 204 || res.status === 202) {
+        status.textContent = "Croissant verschickt!";
+        status.className = "ok";
+      } else {
+        status.textContent = "Fehler: " + res.status;
+        status.className = "err";
+      }
+    } catch (err) {
+      status.textContent = "Senden fehlgeschlagen. Netzwerk oder URL prüfen.";
+      status.className = "err";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
